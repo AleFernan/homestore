@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<title>Home Store</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #0D6970;
+    --primary-light: #89CBCC;
+    --primary-dark: #094F55;
+    --white: #FFFFFF;
+    --bg: #F0F8F8;
+    --surface: #FFFFFF;
+    --border: #C8E8E9;
+    --text: #0A3D42;
+    --text-light: #4A8A8F;
+    --text-muted: #8BBBBF;
+    --danger: #D94F4F;
+    --radius: 14px;
+    --shadow: 0 2px 12px rgba(13,105,112,0.10);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    background: var(--primary);
+    padding: 48px 20px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-title { color: var(--white); font-size: 20px; font-weight: 900; letter-spacing: 3px; }
+  .topbar-sub { color: var(--primary-light); font-size: 11px; letter-spacing: 1px; margin-top: 2px; }
+  .topbar-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    color: var(--white);
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* SCREENS */
+  .screen { display: none; min-height: 100vh; padding-bottom: 100px; }
+  .screen.active { display: block; }
+
+  /* FILTERS */
+  .filters {
+    padding: 12px 16px 8px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    color: var(--primary);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .chip.active { background: var(--primary); border-color: var(--primary); color: var(--white); }
+
+  /* PRODUCT LIST */
+  .product-list { padding: 8px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .product-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.2s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .product-thumb { width: 88px; height: 88px; object-fit: cover; flex-shrink: 0; background: var(--bg); }
+  .product-info { flex: 1; padding: 12px; min-width: 0; }
+  .product-cat { font-size: 10px; font-weight: 700; color: var(--primary); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 3px; }
+  .product-talle { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .product-precio { font-size: 17px; font-weight: 900; color: var(--primary); }
+  .delete-btn { padding: 16px; background: none; border: none; cursor: pointer; color: var(--danger); font-size: 20px; flex-shrink: 0; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 60px 20px; }
+  .empty-icon { font-size: 52px; margin-bottom: 12px; }
+  .empty-title { font-size: 18px; font-weight: 700; color: var(--text-light); margin-bottom: 6px; }
+  .empty-text { font-size: 14px; line-height: 1.5; color: var(--text-muted); }
+
+  /* FAB */
+  .fab {
+    position: fixed; bottom: 28px; right: 24px;
+    width: 60px; height: 60px; border-radius: 30px;
+    background: var(--primary); color: var(--white);
+    font-size: 32px; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(13,105,112,0.4);
+    z-index: 99;
+  }
+  .fab:active { transform: scale(0.93); }
+
+  /* SCREEN HEADER */
+  .screen-header {
+    background: var(--primary);
+    padding: 48px 16px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .back-btn {
+    width: 38px; height: 38px; border-radius: 19px;
+    background: rgba(255,255,255,0.15); border: none;
+    color: var(--white); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .screen-title { color: var(--white); font-size: 18px; font-weight: 800; letter-spacing: 1px; }
+
+  /* FORM */
+  .form-body { padding: 20px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .photo-area {
+    height: 220px; border-radius: var(--radius);
+    border: 2px dashed var(--border); background: var(--surface);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; overflow: hidden; position: relative; margin-bottom: 8px;
+  }
+  .photo-area img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(13,105,112,0.75); color: var(--white);
+    text-align: center; padding: 8px; font-size: 13px; font-weight: 600;
+  }
+  .photo-placeholder { text-align: center; color: var(--text-muted); }
+  .photo-placeholder .icon { font-size: 40px; margin-bottom: 8px; }
+  .photo-placeholder .ptitle { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .photo-placeholder .psub { font-size: 12px; }
+  .field-label {
+    font-size: 12px; font-weight: 700; color: var(--text-light);
+    letter-spacing: 1.5px; text-transform: uppercase;
+    margin-top: 12px; margin-bottom: 6px;
+  }
+  .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cat-btn {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: 12px; padding: 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    cursor: pointer; font-size: 14px; font-weight: 700; color: var(--primary);
+  }
+  .cat-btn .cat-icon { font-size: 22px; }
+  .cat-btn.active { background: var(--primary); border-color: var(--primary); color: var(--white); }
+  .input-field {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    font-size: 16px; color: var(--text); font-weight: 600;
+    width: 100%; outline: none; font-family: inherit;
+  }
+  .input-field:focus { border-color: var(--primary); }
+  .price-row { display: flex; gap: 10px; align-items: center; }
+  .currency-badge {
+    background: var(--primary); color: var(--white);
+    border-radius: 12px; padding: 14px; font-weight: 800; font-size: 14px; flex-shrink: 0;
+  }
+  .save-btn {
+    background: var(--primary); color: var(--white); border: none;
+    border-radius: var(--radius); padding: 18px; font-size: 17px; font-weight: 800;
+    cursor: pointer; width: 100%; margin-top: 24px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 16px rgba(13,105,112,0.35);
+  }
+  .save-btn:disabled { opacity: 0.45; }
+
+  /* EXPORT */
+  .info-card {
+    background: #EAF5F6; border-left: 3px solid var(--primary);
+    border-radius: 12px; padding: 14px; font-size: 13px; line-height: 1.6; color: var(--text); margin-bottom: 8px;
+  }
+  .preview-card {
+    background: #EAF5F6; border: 1.5px solid var(--primary-light);
+    border-radius: var(--radius); padding: 16px;
+    display: flex; align-items: center; gap: 14px; margin-top: 16px;
+  }
+  .preview-card.empty { background: #F5F5F5; border-color: var(--border); }
+  .preview-icon {
+    width: 52px; height: 52px; border-radius: 26px;
+    background: var(--white); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .preview-title { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  .preview-count { font-size: 13px; font-weight: 600; color: var(--primary); }
+  .preview-count.empty { color: var(--text-muted); }
+  .generate-btn {
+    background: var(--primary); color: var(--white); border: none;
+    border-radius: var(--radius); padding: 18px; font-size: 17px; font-weight: 800;
+    cursor: pointer; width: 100%; margin-top: 24px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: 0 4px 16px rgba(13,105,112,0.35);
+  }
+  .generate-btn:disabled { opacity: 0.4; box-shadow: none; }
+  .footer-note { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 16px; line-height: 1.6; padding: 0 16px 40px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 20px 20px 0 0; padding: 24px 20px 40px; width: 100%; }
+  .modal-title { font-size: 17px; font-weight: 800; margin-bottom: 16px; color: var(--text); }
+  .modal-btn { display: block; width: 100%; padding: 14px; background: var(--bg); border: none; border-radius: 12px; font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; margin-bottom: 10px; text-align: left; }
+  .modal-btn-cancel { background: none; color: var(--text-muted); }
+
+  /* LOADING */
+  .loading { display: none; position: fixed; inset: 0; background: rgba(13,105,112,0.88); z-index: 300; flex-direction: column; align-items: center; justify-content: center; color: var(--white); gap: 16px; }
+  .loading.open { display: flex; }
+  .spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.3); border-top-color: var(--white); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 16px; font-weight: 600; letter-spacing: 1px; }
+  .loading-sub { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: -8px; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--primary-dark); color: var(--white); padding: 12px 24px; border-radius: 24px; font-size: 14px; font-weight: 600; opacity: 0; transition: all 0.3s; z-index: 400; white-space: nowrap; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- CATALOGO -->
+<div id="screen-catalogo" class="screen active">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">HOME STORE</div>
+      <div class="topbar-sub" id="catalogo-count">0 productos</div>
+    </div>
+    <button class="topbar-btn" onclick="showScreen('exportar')">📄 PDF</button>
+  </div>
+  <div class="filters" id="filters-container"></div>
+  <div class="product-list" id="product-list"></div>
+  <button class="fab" onclick="showScreen('agregar')">+</button>
+</div>
+
+<!-- AGREGAR -->
+<div id="screen-agregar" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('catalogo')">←</button>
+    <span class="screen-title">Nuevo Producto</span>
+  </div>
+  <div class="form-body">
+    <div class="photo-area" id="photo-area" onclick="showPhotoModal()">
+      <div class="photo-placeholder">
+        <div class="icon">📷</div>
+        <div class="ptitle">Agregar foto</div>
+        <div class="psub">Tocá para usar la cámara o galería</div>
+      </div>
+    </div>
+    <div class="field-label">Categoría</div>
+    <div class="cat-grid" id="cat-grid-agregar"></div>
+    <div class="field-label">Talle</div>
+    <input class="input-field" id="input-talle" type="text" placeholder="Ej: M, G, 40, XL, Único..."/>
+    <div class="field-label">Precio</div>
+    <div class="price-row">
+      <div class="currency-badge">Gs.</div>
+      <input class="input-field" id="input-precio" type="number" placeholder="0" inputmode="numeric"/>
+    </div>
+    <button class="save-btn" id="save-btn" onclick="guardarProducto()">✓ Guardar Producto</button>
+  </div>
+</div>
+
+<!-- EXPORTAR -->
+<div id="screen-exportar" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('catalogo')">←</button>
+    <span class="screen-title">Exportar PDF</span>
+  </div>
+  <div class="form-body">
+    <div class="info-card">
+      Elegí una categoría y opcionalmente un talle. El PDF tendrá una portada y una página por producto con foto, talle, precio y número de página.
+    </div>
+    <div class="field-label">Categoría *</div>
+    <div class="cat-grid" id="cat-grid-exportar"></div>
+    <div class="field-label">Talle (opcional)</div>
+    <input class="input-field" id="export-talle" type="text" placeholder="Vacío = todos los talles" oninput="actualizarPreview()"/>
+    <div class="preview-card empty" id="preview-card">
+      <div class="preview-icon">📄</div>
+      <div>
+        <div class="preview-title" id="preview-title">Seleccioná una categoría</div>
+        <div class="preview-count empty" id="preview-count">0 productos</div>
+      </div>
+    </div>
+    <button class="generate-btn" id="generate-btn" onclick="generarPDF()" disabled>
+      📤 Generar y Compartir PDF
+    </button>
+    <div class="footer-note">
+      El PDF se guarda en tu teléfono y podés compartirlo por WhatsApp, email o como quieras.
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO MODAL -->
+<div class="modal-overlay" id="photo-modal">
+  <div class="modal">
+    <div class="modal-title">Agregar foto del producto</div>
+    <button class="modal-btn" onclick="usarCamara()">📷 Usar cámara</button>
+    <button class="modal-btn" onclick="usarGaleria()">🖼 Elegir de galería</button>
+    <button class="modal-btn modal-btn-cancel" onclick="closeModal('photo-modal')">Cancelar</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Generando PDF...</div>
+  <div class="loading-sub" id="loading-sub"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- FILE INPUTS -->
+<input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this)"/>
+<input type="file" id="file-gallery" accept="image/*" style="display:none" onchange="handleFileSelect(this)"/>
+
+<script>
+const CATEGORIES = [
+  { name: 'Ropa',       icon: '👕' },
+  { name: 'Calzado',    icon: '👟' },
+  { name: 'Accesorios', icon: '⌚' },
+  { name: 'Bazar',      icon: '🏠' },
+];
+
+let productos = [];
+let filtroCategoria = null;
+let fotoCaptured = null;
+let categoriaSeleccionada = null;
+let exportCategoria = null;
+let db;
+
+// ── IndexedDB ──────────────────────────────────────────────────────
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('homestore', 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('productos'))
+        d.createObjectStore('productos', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(); };
+    req.onerror   = () => reject(req.error);
+  });
+}
+function dbGetAll() {
+  return new Promise((res, rej) => {
+    const req = db.transaction('productos','readonly').objectStore('productos').getAll();
+    req.onsuccess = () => res(req.result.reverse());
+    req.onerror   = () => rej(req.error);
+  });
+}
+function dbAdd(p) {
+  return new Promise((res, rej) => {
+    const req = db.transaction('productos','readwrite').objectStore('productos').add(p);
+    req.onsuccess = () => res(req.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+function dbDelete(id) {
+  return new Promise((res, rej) => {
+    const req = db.transaction('productos','readwrite').objectStore('productos').delete(id);
+    req.onsuccess = () => res();
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+// ── Screens ────────────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+  if (name === 'catalogo') renderCatalogo();
+  if (name === 'agregar')  resetForm();
+  if (name === 'exportar') { exportCategoria = null; renderExportCats(); actualizarPreview(); }
+}
+
+// ── Catalogo ───────────────────────────────────────────────────────
+function renderFilters() {
+  const c = document.getElementById('filters-container');
+  c.innerHTML = `<button class="chip ${!filtroCategoria?'active':''}" onclick="setFiltro(null)">Todo</button>`
+    + CATEGORIES.map(c => `<button class="chip ${filtroCategoria===c.name?'active':''}" onclick="setFiltro('${c.name}')">${c.icon} ${c.name}</button>`).join('');
+}
+function setFiltro(cat) { filtroCategoria = cat; renderCatalogo(); }
+
+async function renderCatalogo() {
+  productos = await dbGetAll();
+  const f = filtroCategoria ? productos.filter(p => p.categoria === filtroCategoria) : productos;
+  document.getElementById('catalogo-count').textContent = `${f.length} producto${f.length!==1?'s':''}`;
+  renderFilters();
+  const list = document.getElementById('product-list');
+  if (!f.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Sin productos</div><div class="empty-text">${filtroCategoria?`No hay productos en ${filtroCategoria}`:'Tocá el + para agregar tu primer producto'}</div></div>`;
+    return;
+  }
+  list.innerHTML = f.map(p => `
+    <div class="product-card">
+      <img class="product-thumb" src="${p.foto}"/>
+      <div class="product-info">
+        <div class="product-cat">${CATEGORIES.find(c=>c.name===p.categoria)?.icon||''} ${p.categoria}</div>
+        <div class="product-talle">Talle: ${p.talle}</div>
+        <div class="product-precio">${fmtPrecio(p.precio)}</div>
+      </div>
+      <button class="delete-btn" onclick="eliminarProducto(${p.id})">🗑</button>
+    </div>`).join('');
+}
+
+async function eliminarProducto(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+  await dbDelete(id);
+  renderCatalogo();
+  showToast('Producto eliminado');
+}
+
+// ── Agregar ────────────────────────────────────────────────────────
+function renderAgregarCats() {
+  document.getElementById('cat-grid-agregar').innerHTML = CATEGORIES.map(c =>
+    `<button class="cat-btn ${categoriaSeleccionada===c.name?'active':''}" onclick="selectCat('${c.name}')">
+      <span class="cat-icon">${c.icon}</span>${c.name}</button>`).join('');
+}
+function selectCat(n) { categoriaSeleccionada = n; renderAgregarCats(); }
+
+function resetForm() {
+  fotoCaptured = null; categoriaSeleccionada = null;
+  document.getElementById('input-talle').value = '';
+  document.getElementById('input-precio').value = '';
+  document.getElementById('photo-area').innerHTML = `
+    <div class="photo-placeholder">
+      <div class="icon">📷</div>
+      <div class="ptitle">Agregar foto</div>
+      <div class="psub">Tocá para usar la cámara o galería</div>
+    </div>`;
+  renderAgregarCats();
+}
+
+function showPhotoModal() { document.getElementById('photo-modal').classList.add('open'); }
+function closeModal(id)    { document.getElementById(id).classList.remove('open'); }
+function usarCamara()  { closeModal('photo-modal'); document.getElementById('file-camera').click(); }
+function usarGaleria() { closeModal('photo-modal'); document.getElementById('file-gallery').click(); }
+
+function handleFileSelect(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fotoCaptured = e.target.result;
+    document.getElementById('photo-area').innerHTML =
+      `<img src="${fotoCaptured}"/><div class="photo-overlay">📷 Cambiar foto</div>`;
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+async function guardarProducto() {
+  const talle  = document.getElementById('input-talle').value.trim();
+  const precio = parseFloat(document.getElementById('input-precio').value);
+  if (!fotoCaptured)              { showToast('⚠ Agregá una foto'); return; }
+  if (!categoriaSeleccionada)     { showToast('⚠ Seleccioná una categoría'); return; }
+  if (!talle)                     { showToast('⚠ Ingresá el talle'); return; }
+  if (!precio || precio <= 0)     { showToast('⚠ Ingresá un precio válido'); return; }
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const compressed = await compressImage(fotoCaptured, 900);
+  await dbAdd({ foto: compressed, categoria: categoriaSeleccionada, talle: talle.toUpperCase(), precio, fecha: new Date().toISOString() });
+  btn.disabled = false; btn.innerHTML = '✓ Guardar Producto';
+  showToast('✓ Producto guardado');
+  showScreen('catalogo');
+}
+
+function compressImage(b64, maxW) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = h * maxW / w; w = maxW; }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      res(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.src = b64;
+  });
+}
+
+// ── Exportar ───────────────────────────────────────────────────────
+function renderExportCats() {
+  document.getElementById('cat-grid-exportar').innerHTML = CATEGORIES.map(c =>
+    `<button class="cat-btn ${exportCategoria===c.name?'active':''}" onclick="selectExportCat('${c.name}')">
+      <span class="cat-icon">${c.icon}</span>${c.name}</button>`).join('');
+}
+function selectExportCat(n) {
+  exportCategoria = exportCategoria === n ? null : n;
+  renderExportCats(); actualizarPreview();
+}
+
+async function actualizarPreview() {
+  const talle = document.getElementById('export-talle').value.trim().toUpperCase();
+  const todos = await dbGetAll();
+  let f = exportCategoria ? todos.filter(p => p.categoria === exportCategoria) : [];
+  if (talle) f = f.filter(p => p.talle === talle);
+
+  const card  = document.getElementById('preview-card');
+  const title = document.getElementById('preview-title');
+  const count = document.getElementById('preview-count');
+  const btn   = document.getElementById('generate-btn');
+
+  if (!exportCategoria) {
+    card.className = 'preview-card empty';
+    title.textContent = 'Seleccioná una categoría';
+    count.className = 'preview-count empty'; count.textContent = '0 productos';
+    btn.disabled = true; return;
+  }
+  const label = talle ? `${exportCategoria} — Talle ${talle}` : exportCategoria;
+  card.className = 'preview-card';
+  title.textContent = label;
+  count.className = f.length > 0 ? 'preview-count' : 'preview-count empty';
+  count.textContent = `${f.length} producto${f.length!==1?'s':''} · ${f.length+1} páginas`;
+  btn.disabled = f.length === 0;
+}
+
+// ── PDF con jsPDF ──────────────────────────────────────────────────
+async function generarPDF() {
+  const talle = document.getElementById('export-talle').value.trim().toUpperCase();
+  const todos = await dbGetAll();
+  let filtrados = todos.filter(p => p.categoria === exportCategoria);
+  if (talle) filtrados = filtrados.filter(p => p.talle === talle);
+  if (!filtrados.length) { showToast('Sin productos con ese filtro'); return; }
+
+  showLoading('Preparando imágenes...', `0 de ${filtrados.length}`);
+
+  try {
+    const { jsPDF } = window.jspdf;
+
+    // Page size: A4 portrait in mm
+    const PW = 210, PH = 297;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const subtitulo = talle ? `${exportCategoria} — Talle ${talle}` : exportCategoria;
+    const total = filtrados.length;
+
+    // ── PORTADA ──
+    doc.setFillColor(13, 105, 112);
+    doc.rect(0, 0, PW, PH, 'F');
+
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(32);
+    doc.text('HOME STORE', PW / 2, PH / 2 - 22, { align: 'center' });
+
+    // Line
+    doc.setDrawColor(137, 203, 204);
+    doc.setLineWidth(1);
+    doc.line(PW / 2 - 25, PH / 2 - 10, PW / 2 + 25, PH / 2 - 10);
+
+    // Subtitle
+    doc.setTextColor(137, 203, 204);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(16);
+    doc.text(subtitulo.toUpperCase(), PW / 2, PH / 2 + 4, { align: 'center' });
+
+    // Count
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${total} producto${total !== 1 ? 's' : ''}`, PW / 2, PH / 2 + 16, { align: 'center' });
+
+    // ── PÁGINAS DE PRODUCTOS ──
+    for (let i = 0; i < filtrados.length; i++) {
+      const p = filtrados[i];
+      updateLoading(`Procesando foto ${i + 1} de ${total}...`);
+      doc.addPage();
+
+      // White background
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, PW, PH, 'F');
+
+      // Info bar heights
+      const infoBarH = 28;
+      const pageNumH = 10;
+      const imgH = PH - infoBarH - pageNumH;
+
+      // Photo
+      try {
+        const imgData = await getImageAsJpeg(p.foto);
+        doc.addImage(imgData, 'JPEG', 0, 0, PW, imgH, undefined, 'FAST');
+      } catch(e) {
+        doc.setFillColor(240, 248, 248);
+        doc.rect(0, 0, PW, imgH, 'F');
+        doc.setTextColor(150, 150, 150);
+        doc.setFontSize(12);
+        doc.text('Sin imagen', PW / 2, imgH / 2, { align: 'center' });
+      }
+
+      // Info bar: white with top border
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, imgH, PW, infoBarH, 'F');
+      doc.setDrawColor(13, 105, 112);
+      doc.setLineWidth(0.8);
+      doc.line(0, imgH, PW, imgH);
+
+      // TALLE label
+      doc.setTextColor(137, 203, 204);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text('TALLE', 10, imgH + 9);
+
+      // Talle value
+      doc.setTextColor(10, 61, 66);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text(p.talle, 10, imgH + 22);
+
+      // Divider
+      doc.setDrawColor(200, 232, 233);
+      doc.setLineWidth(0.4);
+      doc.line(PW / 2, imgH + 5, PW / 2, imgH + 24);
+
+      // PRECIO label
+      doc.setTextColor(137, 203, 204);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text('PRECIO', PW / 2 + 6, imgH + 9);
+
+      // Precio value
+      doc.setTextColor(13, 105, 112);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      const precioStr = fmtPrecio(p.precio);
+      doc.text(precioStr, PW / 2 + 6, imgH + 22);
+
+      // Page number bar
+      const pageY = imgH + infoBarH;
+      doc.setFillColor(13, 105, 112);
+      doc.rect(0, pageY, PW, pageNumH, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text(`${i + 1}  /  ${total}`, PW / 2, pageY + 6.5, { align: 'center', charSpace: 2 });
+    }
+
+    updateLoading('Descargando PDF...');
+
+    // Save
+    const fecha = new Date().toISOString().split('T')[0];
+    const filename = `HomeStore_${exportCategoria}_${talle||'todos'}_${fecha}.pdf`;
+    doc.save(filename);
+
+    hideLoading();
+    showToast('✓ PDF descargado');
+
+  } catch(e) {
+    hideLoading();
+    console.error(e);
+    showToast('Error generando el PDF');
+  }
+}
+
+// Convert any image base64 to JPEG via canvas
+function getImageAsJpeg(src) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      res(c.toDataURL('image/jpeg', 0.88));
+    };
+    img.onerror = rej;
+    img.src = src;
+  });
+}
+
+// ── Utils ──────────────────────────────────────────────────────────
+function fmtPrecio(p) {
+  return new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG', minimumFractionDigits: 0 }).format(p);
+}
+function showLoading(text, sub) {
+  document.getElementById('loading-text').textContent = text || 'Cargando...';
+  document.getElementById('loading-sub').textContent = sub || '';
+  document.getElementById('loading').classList.add('open');
+}
+function updateLoading(text) {
+  document.getElementById('loading-text').textContent = text;
+}
+function hideLoading() { document.getElementById('loading').classList.remove('open'); }
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+initDB().then(() => renderCatalogo());
+</script>
+</body>
+</html>
